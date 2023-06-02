@@ -74,7 +74,7 @@ def delete(lname):
         db.session.commit()
 
         return make_response(
-            f"{lname} successfully deleted", 200
+            f"Person with last name {lname} successfully deleted", 204
         )
 
     abort(

@@ -9,21 +9,14 @@
 <body>
     <h1>Hello, universe!</h1>
 
-    <table border="1" style="border-collapse: collapse; width: 100%;">
-        <tr style="background-color: #f2f2f2;">
-            <th>ID</th>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Timestamp</th>
-        </tr>
-        {% for person in people %}
-        <tr style="background-color: {% if loop.index is even %}#f9f9f9{% else %}transparent{% endif %};">
-            <td style="text-align: left; padding: 8px;">{{ person.id }}</td>
-            <td style="text-align: left; padding: 8px;">{{ person.fname }}</td>
-            <td style="text-align: left; padding: 8px;">{{ person.lname }}</td>
-            <td style="text-align: left; padding: 8px;">{{ person.timestamp }}</td>
-         </tr>
+    {% for person in people %}
+    <h2> {{ person.fname }} {{ person.lname }} </h2>
+    <ul>
+        {% for note in person.notes %}
+        <li>{{ note.timestamp }} {{ note.content }} </li>
         {% endfor %}
-    </table>
+    </ul>
+
+    {% endfor %}
 </body>
 </html>
