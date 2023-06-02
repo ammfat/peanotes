@@ -1,42 +1,20 @@
-from datetime import datetime
 from flask import abort, make_response
 
-def get_timestamp():
-    return datetime.now().strftime(("%Y-%m-%d %H:%M:%S"))
-
-PEOPLE = {
-    "Fairy": {
-        "fname": "Tooth",
-        "lname": "Fairy",
-        "timestamp": get_timestamp(),
-    },
-    "Ruprecht": {
-        "fname": "Knecht",
-        "lname": "Ruprecht",
-        "timestamp": get_timestamp(),
-    },
-    "Bunny": {
-        "fname": "Easter",
-        "lname": "Bunny",
-        "timestamp": get_timestamp(),
-    }
-}
-
+from config import db
+from models import Person, person_schema, people_schema
 
 def create(person):
-    """Creates a new person in the people structure """
+    """ Creates a new person in the people structure """
 
     lname = person.get("lname")
-    fname = person.get("fname", "")
+    existing_person = Person.query.filter(Person.lname == lname).one_or_none()
 
-    if lname and lname not in PEOPLE:
-        PEOPLE[lname] = {
-            "lname": lname,
-            "fname": fname,
-            "timestamp": get_timestamp(),
-        }
-
-        return PEOPLE[lname], 201
+    if existing_person is None:
+        new_person = person_schema.load(person, session=db.session)
+        db.session.add(new_person)
+        db.session.commit()
+        
+        return person_schema.dump(new_person), 201
 
     abort(
         406,
@@ -45,16 +23,19 @@ def create(person):
 
 
 def read_all():
-    """Returns list of people """
+    """Returns all people from the people structure"""
 
-    return list(PEOPLE.values())
+    people = Person.query.all()
 
+    return people_schema.dump(people)
 
 def read_one(lname):
     """Returns one person for the given last name"""
 
-    if lname in PEOPLE:
-        return PEOPLE[lname]
+    person = Person.query.filter(Person.lname == lname).one_or_none()
+
+    if person:
+        return person_schema.dump(person)
 
     abort(
         404, 
@@ -65,13 +46,17 @@ def read_one(lname):
 def update(lname, person):
     """ Updates an existing person in the people structure """
 
-    if lname in PEOPLE:
-        ## Here, we only update the existing person's first name and timestamp
-        ## (the lname) is retained
-        PEOPLE[lname]["fname"] = person.get("fname", PEOPLE[lname]["fname"])
-        PEOPLE[lname]["timestamp"] = get_timestamp()
+    existing_person = Person.query.filter(Person.lname == lname).one_or_none()
 
-        return PEOPLE[lname]
+    if existing_person:
+        update_person = person_schema.load(person, session=db.session)
+        existing_person.fname = update_person.fname
+        existing_person.lname = update_person.lname        
+
+        db.session.merge(existing_person)
+        db.session.commit()
+
+        return person_schema.dump(existing_person), 200
 
     abort(
         404,
@@ -82,8 +67,11 @@ def update(lname, person):
 def delete(lname):
     """ Deletes a person from the people structure """
 
-    if lname in PEOPLE:
-        del PEOPLE[lname]
+    existing_person = Person.query.filter(Person.lname == lname).one_or_none()
+
+    if existing_person:
+        db.session.delete(existing_person)
+        db.session.commit()
 
         return make_response(
             f"{lname} successfully deleted", 200
